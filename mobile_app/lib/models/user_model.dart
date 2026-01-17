@@ -28,6 +28,8 @@ class UserModel {
     );
   }
 
+  get location => null;
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,

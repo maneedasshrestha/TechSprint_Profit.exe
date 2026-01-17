@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:hamro_chautari/widgets/custom_app_bar.dart';
 import 'dart:async';
 import '../models/user_model.dart';
-import '../models/user_stats_model.dart';
 import '../models/post_model.dart';
 import '../services/auth_service.dart';
 import '../services/profile_service.dart';
@@ -22,7 +21,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _postService = PostService();
 
   UserModel? _currentUser;
-  UserStats? _userStats;
   String? _currentPhotoUrl;
   List<PostModel> _userPosts = [];
   bool _isLoading = true;
@@ -96,12 +94,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       // Fetch stats and current photo URL from database
-      final stats = await _profileService.getUserStats(user.id);
+      await _profileService.getUserStats(user.id);
       final photoUrl = await _profileService.getUserPhotoUrl(user.id);
 
       setState(() {
         _currentUser = user;
-        _userStats = stats;
         _currentPhotoUrl =
             photoUrl ??
             user.photoUrl; // Use DB photo or fallback to Google photo
@@ -499,61 +496,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
     );
   }
-
-  Widget _buildStatCard(String label, String value, IconData icon) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: const Color(0xFF2E4F99), size: 24),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1a1a1a),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF666666),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _getMemberSinceText() {
-    final memberSince = _currentUser?.createdAt;
-    if (memberSince == null) return 'N/A';
-
-    final now = DateTime.now();
-    final difference = now.difference(memberSince);
-
-    if (difference.inDays < 1) {
-      return 'Today';
-    } else if (difference.inDays < 30) {
-      return '${difference.inDays}d ago';
-    } else if (difference.inDays < 365) {
-      final months = (difference.inDays / 30).floor();
-      return '${months}mo ago';
-    } else {
-      final years = (difference.inDays / 365).floor();
-      return '${years}y ago';
-    }
-  }
 }
 
 class PostCard extends StatefulWidget {
@@ -578,7 +520,6 @@ class _PostCardState extends State<PostCard>
   // Animation related
   AnimationController? _animationController;
   Animation<double>? _scaleAnimation;
-  Animation<Color?>? _colorAnimation;
   Animation<double>? _iconAnimation;
 
   @override
@@ -597,16 +538,6 @@ class _PostCardState extends State<PostCard>
       CurvedAnimation(parent: _animationController!, curve: Curves.elasticOut),
     );
 
-    _colorAnimation =
-        ColorTween(
-          begin: Colors.transparent,
-          end: const Color(0xFF2E4F99),
-        ).animate(
-          CurvedAnimation(
-            parent: _animationController!,
-            curve: Curves.easeInOut,
-          ),
-        );
 
     _iconAnimation = Tween<double>(begin: 1.0, end: 1.3).animate(
       CurvedAnimation(parent: _animationController!, curve: Curves.bounceOut),
