@@ -504,29 +504,101 @@ class PostService {
   // Get posts created by user or posts they've interacted with (via backend)
   Future<List<PostModel>> getUserActivityPosts(String userId) async {
     try {
-      print('🔍 Fetching user activity posts for user: $userId');
+      print('🔍 Fetching user activity posts for user: $userId (using Supabase)');
       
-      final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/posts/user/$userId/activity'),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        print('✅ Received ${(data['data'] as List).length} activity posts');
-        
-        return (data['data'] as List).map((post) {
-          final userData = post['users'];
-          return PostModel.fromJson({
-            ...post,
-            'user_display_name': userData?['display_name'],
-            'user_photo_url': userData?['photo_url'],
-          });
-        }).toList();
-      } else {
-        final error = jsonDecode(response.body);
-        throw Exception(error['message'] ?? 'Failed to fetch user activity posts');
+      // Get posts the user has liked
+      final likedPostsResponse = await _supabase
+          .from('post_likes')
+          .select('post_id')
+          .eq('user_id', userId);
+      
+      final likedPostIds = (likedPostsResponse as List)
+          .map((like) => like['post_id'] as String)
+          .toList();
+      
+      // Get posts the user has commented on
+      final commentedPostsResponse = await _supabase
+          .from('post_threads')
+          .select('post_id')
+          .eq('user_id', userId);
+      
+      final commentedPostIds = (commentedPostsResponse as List)
+          .map((comment) => comment['post_id'] as String)
+          .toList();
+      
+      // Get posts the user has created
+      final userPostsResponse = await _supabase
+          .from('posts')
+          .select('id')
+          .eq('user_id', userId);
+      
+      final userPostIds = (userPostsResponse as List)
+          .map((post) => post['id'] as String)
+          .toList();
+      
+      // Combine all unique post IDs
+      final allActivityPostIds = <String>{
+        ...likedPostIds,
+        ...commentedPostIds,
+        ...userPostIds,
+      }.toList();
+      
+      print('📊 Found activity for ${allActivityPostIds.length} posts');
+      print('  - Liked: ${likedPostIds.length}');
+      print('  - Commented: ${commentedPostIds.length}');
+      print('  - Created: ${userPostIds.length}');
+      
+      if (allActivityPostIds.isEmpty) {
+        return [];
       }
+      
+      // Get the actual posts with user details
+      final postsResponse = await _supabase
+          .from('posts')
+          .select('''
+            *, 
+            users(display_name, photo_url),
+            tags(*)
+          ''')
+          .inFilter('id', allActivityPostIds)
+          .order('created_at', ascending: false);
+      
+      // For each post, check if user has commented and include their comment
+      final postsWithActivity = <PostModel>[];
+      
+      for (final post in postsResponse as List) {
+        final userData = post['users'];
+        
+        // Check if user has a comment on this post
+        UserComment? userComment;
+        if (commentedPostIds.contains(post['id'])) {
+          final userCommentResponse = await _supabase
+              .from('post_threads')
+              .select('content, image_url, created_at')
+              .eq('post_id', post['id'])
+              .eq('user_id', userId)
+              .order('created_at', ascending: false)
+              .limit(1)
+              .maybeSingle();
+          
+          if (userCommentResponse != null) {
+            userComment = UserComment.fromJson(userCommentResponse);
+          }
+        }
+        
+        final postModel = PostModel.fromJson({
+          ...post,
+          'user_display_name': userData?['display_name'],
+          'user_photo_url': userData?['photo_url'],
+          'user_comment': userComment?.toJson(),
+        });
+        
+        postsWithActivity.add(postModel);
+      }
+      
+      print('✅ Loaded ${postsWithActivity.length} user activity posts from Supabase');
+      return postsWithActivity;
+      
     } catch (e) {
       print('❌ Error getting user activity posts: $e');
       return [];

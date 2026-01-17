@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hamro_chautari/widgets/custom_app_bar.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'dart:async';
 import '../models/user_model.dart';
 import '../models/user_stats_model.dart';
 import '../models/post_model.dart';
@@ -39,23 +40,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadUserPosts() async {
-    if (_currentUser == null) return;
+    if (_currentUser == null) {
+      print('⚠️ Cannot load user posts: _currentUser is null');
+      return;
+    }
 
-    setState(() => _isLoadingPosts = true);
+    if (mounted) {
+      setState(() => _isLoadingPosts = true);
+    }
 
     try {
-      // Use the new method to get posts user created or interacted with
+      print('📱 Loading user activity posts for user: ${_currentUser!.id}');
+      
+      // Get posts user created, liked, or commented on
       final posts = await _postService.getUserActivityPosts(_currentUser!.id);
-      setState(() {
-        _userPosts = posts;
-        _isLoadingPosts = false;
-      });
-    } catch (e) {
-      setState(() => _isLoadingPosts = false);
+      print('✅ Loaded ${posts.length} user activity posts');
+      
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to load posts: $e')));
+        setState(() {
+          _userPosts = posts;
+          _isLoadingPosts = false;
+        });
+      }
+    } catch (e) {
+      print('❌ Error loading user posts: $e');
+      if (mounted) {
+        setState(() => _isLoadingPosts = false);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load posts: $e'),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: _loadUserPosts,
+            ),
+          ),
+        );
       }
     }
   }
@@ -302,7 +322,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   color: Color(0xFF666666),
                                 ),
                               ),
-
+                              const Text(
+                                'Location: Bhaktapur, Nepal',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF666666),
+                                ),
+                              ),
                               const SizedBox(height: 24),
 
                               // Sign Out Button
@@ -370,7 +396,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                         child: Text(
-                          'My Posts (${_userPosts.length})',
+                          'Your Activity (${_userPosts.length})',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -385,7 +411,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     SliverToBoxAdapter(
                       child: SizedBox(
                         height: 200,
-                        child: const Center(child: CircularProgressIndicator()),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const CircularProgressIndicator(),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Loading your posts...',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'If this takes too long, the server might be slow.',
+                              style: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 12,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
                       ),
                     )
                   else if (_userPosts.isEmpty)
