@@ -6,6 +6,16 @@ export interface Report {
   image: string | null;
 }
 
+export interface Thread {
+  id: string;
+  user_id: string;
+  content: string;
+  image_url: string | null;
+  timeAgo: string;
+  userName: string;
+  userAvatar: string | null;
+}
+
 export interface Issue {
   id: string;
   image: string;
@@ -24,6 +34,7 @@ export interface Issue {
   engagement: string;
   timeAgo: string;
   recentReports: Report[];
+  threads?: Thread[];
 }
 
 export interface HeatmapIssue {
