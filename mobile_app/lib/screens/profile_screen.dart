@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../services/profile_service.dart';
 import '../services/post_service.dart';
 import 'post_detail_screen.dart';
+import 'change_voting_location_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -339,6 +340,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ],
                               ),
                               const SizedBox(height: 24),
+
+                              // Change Voting Location Button
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0,
+                                ),
+                                child: GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const ChangeVotingLocationScreen(),
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    width: double.infinity,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          const Color(
+                                            0xFF2E4F99,
+                                          ).withOpacity(0.1),
+                                          const Color(
+                                            0xFF2E4F99,
+                                          ).withOpacity(0.05),
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(25),
+                                      border: Border.all(
+                                        color: const Color(0xFF2E4F99),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: const Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.location_on,
+                                          color: Color(0xFF2E4F99),
+                                          size: 24,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Change Voting Location',
+                                          style: TextStyle(
+                                            color: Color(0xFF2E4F99),
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 16),
 
                               // Sign Out Button
                               Padding(
