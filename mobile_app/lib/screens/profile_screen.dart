@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hamro_chautari/widgets/custom_app_bar.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import 'dart:async';
 import '../models/user_model.dart';
 import '../models/user_stats_model.dart';
 import '../models/post_model.dart';
-import '../models/thread_model.dart';
 import '../services/auth_service.dart';
 import '../services/profile_service.dart';
 import '../services/post_service.dart';
