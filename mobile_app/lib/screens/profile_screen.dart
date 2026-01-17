@@ -331,7 +331,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    _currentUser?.location ?? 'Location not set',
+                                    _currentUser?.location ?? 'Location: Bhaktapur',
                                     style: const TextStyle(
                                       fontSize: 14,
                                       color: Color(0xFF666666),
