@@ -319,12 +319,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   color: Color(0xFF666666),
                                 ),
                               ),
-                              const Text(
-                                'Location: Bhaktapur, Nepal',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Color(0xFF666666),
-                                ),
+                              
+                              const SizedBox(height: 4),
+                              
+                              // Location with icon
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.location_on,
+                                    size: 16,
+                                    color: Color(0xFF666666),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _currentUser?.location ?? 'Location not set',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Color(0xFF666666),
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 24),
 
