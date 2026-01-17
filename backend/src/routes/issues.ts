@@ -34,12 +34,12 @@ router.get("/issues", async (req: Request, res: Response) => {
         location,
         description,
         likes_count,
-        comments_count,
+        threads_count,
         created_at,
         user_id,
         tag_id,
         image_url
-      `
+      `,
       )
       .order("created_at", { ascending: false });
 
@@ -61,9 +61,11 @@ router.get("/issues", async (req: Request, res: Response) => {
     }
 
     // Fetch all unique tags
-    const tagIds = [...new Set(posts.map((p: any) => p.tag_id).filter(Boolean))];
+    const tagIds = [
+      ...new Set(posts.map((p: any) => p.tag_id).filter(Boolean)),
+    ];
     let tagsMap: { [key: string]: string } = {};
-    
+
     if (tagIds.length > 0) {
       const { data: tags, error: tagsError } = await supabase
         .from("tags")
@@ -90,14 +92,17 @@ router.get("/issues", async (req: Request, res: Response) => {
           const priorityScore = await calculatePriorityScore(post.id);
           console.log(`    ✓ Priority score: ${priorityScore}`);
 
-          const commentCount = post.comments_count || 0;
+          const commentCount = post.threads_count || 0;
           const likesCount = post.likes_count || 0;
-          const tagName = post.tag_id ? tagsMap[post.tag_id] || "Other" : "Other";
+          const tagName = post.tag_id
+            ? tagsMap[post.tag_id] || "Other"
+            : "Other";
 
           const mappedPost = {
             id: post.id,
             image:
-              post.image_url || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=80&h=80&fit=crop",
+              post.image_url ||
+              "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=80&h=80&fit=crop",
             title: post.title,
             location: post.location,
             category: tagName,
@@ -121,7 +126,7 @@ router.get("/issues", async (req: Request, res: Response) => {
           console.error(`  ❌ Error processing post ${post.id}:`, postError);
           throw postError;
         }
-      })
+      }),
     );
 
     console.log(`📊 Mapped ${issuesWithScores.length} issues successfully`);
@@ -137,7 +142,7 @@ router.get("/issues", async (req: Request, res: Response) => {
   } catch (error) {
     console.error(
       "🔴 [/api/issues] Error:",
-      error instanceof Error ? error.message : error
+      error instanceof Error ? error.message : error,
     );
     console.error("📋 Full error details:", error);
 
@@ -148,7 +153,7 @@ router.get("/issues", async (req: Request, res: Response) => {
   }
 });
 
-// Get single issue with details and comments
+// Get single issue with details and threads
 router.get("/issues/:id", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -162,24 +167,35 @@ router.get("/issues/:id", async (req: Request, res: Response) => {
         location,
         description,
         likes_count,
-        comments_count,
+        threads_count,
         created_at,
         user_id,
         tag_id,
-        image_url,
-        post_comments(
-          id,
-          content,
-          user_id,
-          created_at,
-          users(display_name, photo_url)
-        )
-      `
+        image_url
+      `,
       )
       .eq("id", id)
       .single();
 
     if (postError) throw postError;
+
+    // Fetch threads for this post
+    const { data: threads, error: threadsError } = await supabase
+      .from("post_threads")
+      .select(
+        `
+        id,
+        user_id,
+        content,
+        image_url,
+        created_at,
+        users(display_name, photo_url)
+      `,
+      )
+      .eq("post_id", id)
+      .order("created_at", { ascending: true });
+
+    if (threadsError) throw threadsError;
 
     // Fetch tag name using tag_id
     let tagName = "Other";
@@ -196,7 +212,7 @@ router.get("/issues/:id", async (req: Request, res: Response) => {
     }
 
     const priorityScore = await calculatePriorityScore(id);
-    const commentCount = post.comments_count || 0;
+    const commentCount = post.threads_count || 0;
     const likesCount = post.likes_count || 0;
 
     res.json({
@@ -218,18 +234,20 @@ router.get("/issues/:id", async (req: Request, res: Response) => {
       reportsCount: commentCount,
       engagement: commentCount > 10 ? "High Engagement" : "Medium Engagement",
       timeAgo: getTimeAgo(post.created_at),
-      recentReports: post.post_comments.map((comment: any) => ({
-        name: comment.users?.display_name || "Anonymous",
-        report: comment.content,
-        timeAgo: getTimeAgo(comment.created_at),
-        avatar: (comment.users?.display_name?.[0] || "U").toUpperCase(),
-        image: comment.users?.photo_url || null,
+      threads: (threads || []).map((thread: any) => ({
+        id: thread.id,
+        user_id: thread.user_id,
+        content: thread.content,
+        image_url: thread.image_url,
+        timeAgo: getTimeAgo(thread.created_at),
+        userName: thread.users?.display_name || "Anonymous",
+        userAvatar: thread.users?.photo_url || null,
       })),
     });
   } catch (error) {
     console.error(
       "Error fetching issue:",
-      error instanceof Error ? error.message : error
+      error instanceof Error ? error.message : error,
     );
     res.status(500).json({
       error: "Failed to fetch issue",
