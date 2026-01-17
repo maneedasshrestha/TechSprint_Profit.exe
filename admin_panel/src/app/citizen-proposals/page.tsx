@@ -51,6 +51,21 @@ export default function CitizenProposals() {
 
   // (font) Poppins is loaded globally from RootLayout
 
+  // chatbot state
+  const [showChatbot, setShowChatbot] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Array<{text: string, sender: 'user' | 'bot'}>>([
+    { text: "Hello! I'm here to help you with your proposal. How can I assist you today?", sender: 'bot' }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const chatMessagesEndRef = useRef<HTMLDivElement>(null);  
+  // citizen issues data for AI context
+  const [citizenIssues, setCitizenIssues] = useState<any[]>([]);
+  const [loadingIssues, setLoadingIssues] = useState(false);
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
+
   // toast helper
   useEffect(() => {
     if (!toast) return;
@@ -65,8 +80,135 @@ export default function CitizenProposals() {
     setHasDraft(list.length > 0);
   }, []);
 
+  // Fetch citizen issues for AI context
+  useEffect(() => {
+    const fetchCitizenIssues = async () => {
+      try {
+        setLoadingIssues(true);
+        const response = await fetch('http://localhost:5000/api/issues');
+        
+        if (!response.ok) {
+          console.warn('Failed to fetch citizen issues:', response.statusText);
+          return;
+        }
+        
+        const issues = await response.json();
+        // Sort by priority and take top 10
+        const top10 = issues
+          .sort((a: any, b: any) => b.priority - a.priority)
+          .slice(0, 10);
+        
+        setCitizenIssues(top10);
+      } catch (error) {
+        console.error('Error fetching citizen issues:', error);
+      } finally {
+        setLoadingIssues(false);
+      }
+    };
+
+    fetchCitizenIssues();
+  }, []);
+
+  // Check for pre-populated issue data from Draft Proposal navigation
+  useEffect(() => {
+    const issueData = localStorage.getItem('draft_proposal_issue_data');
+    if (issueData) {
+      try {
+        const parsedData = JSON.parse(issueData);
+        
+        // Pre-populate only the title with the original issue title
+        setProjectTitle(parsedData.title);
+        
+        // Set department based on category
+        const categoryDeptMap: { [key: string]: string } = {
+          'Roads': 'Public Works',
+          'Transportation': 'Transportation', 
+          'Infrastructure': 'Infrastructure',
+          'Urban Planning': 'Urban Planning',
+          'Water': 'Public Works',
+          'Electricity': 'Infrastructure',
+          'Waste Management': 'Public Works'
+        };
+        
+        const suggestedDept = categoryDeptMap[parsedData.category] || 'Public Works';
+        setDepartment(suggestedDept);
+        
+        // Clear the stored data after using it
+        localStorage.removeItem('draft_proposal_issue_data');
+        
+        // Show success toast
+        setToast(`Proposal created for: "${parsedData.title}"`);
+        
+      } catch (error) {
+        console.error('Error parsing issue data:', error);
+        localStorage.removeItem('draft_proposal_issue_data');
+      }
+    }
+  }, []);
+
   const handleLogout = () => {
     router.push('/login');
+  };
+
+  // Analyze user input to determine intent and create appropriate payload
+  const analyzeUserInputAndCreatePayload = (userInput: string) => {
+    const input = userInput.toLowerCase();
+    
+    // Check if user is asking for citizen issues data
+    const isAskingForIssues = input.includes('issue') || input.includes('problem') || input.includes('top') || input.includes('citizen') || input.includes('community');
+    const isAskingForSpecificNumber = input.match(/top\s*(\d+)/i) || input.match(/(\d+)\s*issue/i);
+    
+    // Check if user is asking for proposal help
+    const isAskingForProposal = input.includes('proposal') || input.includes('draft') || input.includes('write') || input.includes('help me') || input.includes('suggest');
+    
+    // Extract number if specified
+    let requestedCount = 10;
+    if (isAskingForSpecificNumber) {
+      const match = input.match(/(\d+)/);
+      if (match) {
+        requestedCount = Math.min(parseInt(match[1]), citizenIssues.length);
+      }
+    }
+    
+    let contextData = '';
+    let instructions = '';
+    
+    if (isAskingForIssues && citizenIssues.length > 0) {
+      const issuesData = citizenIssues.slice(0, requestedCount).map((issue, index) => ({
+        rank: index + 1,
+        title: issue.title,
+        location: issue.location,
+        category: issue.category,
+        priority: issue.priority,
+        status: issue.status,
+        reports: issue.upvotes || 0,
+        description: issue.description || 'N/A'
+      }));
+
+      contextData = `\n\nAVAILABLE CITIZEN ISSUES DATA (Top ${requestedCount}):\n${issuesData.map(issue => 
+        `${issue.rank}. ${issue.title}\n   Location: ${issue.location}\n   Category: ${issue.category}\n   Priority: ${issue.priority}\n   Status: ${issue.status}\n   Community Reports: ${issue.reports}\n   Description: ${issue.description}`
+      ).join('\n\n')}`;
+      
+      instructions = 'Use the above citizen issues data to answer the user\'s question. Focus on the specific information they requested.';
+    }
+    
+    if (isAskingForProposal) {
+      const currentFormData = `\n\nCURRENT FORM DATA:\n- Project Title: ${projectTitle || 'Not set'}\n- Problem Statement: ${problemStatement || 'Not set'}\n- Proposed Solution: ${proposedSolution || 'Not set'}\n- Estimated Budget: ${estimatedBudget || 'Not set'}\n- Department: ${department || 'Not set'}`;
+      
+      contextData += currentFormData;
+      
+      if (citizenIssues.length > 0 && !isAskingForIssues) {
+        // Only include top 3 issues as context for proposal help
+        const topIssues = citizenIssues.slice(0, 3);
+        contextData += `\n\nTOP COMMUNITY ISSUES FOR REFERENCE:\n${topIssues.map((issue, i) => 
+          `${i + 1}. ${issue.title} (${issue.location}) - Priority: ${issue.priority}`
+        ).join('\n')}`;
+      }
+      
+      instructions = 'Help the user with their budget proposal. Use the form data and community issues as context to provide relevant suggestions.';
+    }
+    
+    return { contextData, instructions, hasRelevantData: contextData.length > 0 };
   };
 
   const handleAttachClick = () => fileInputRef.current?.click();
@@ -217,6 +359,115 @@ export default function CitizenProposals() {
     router.push('/dashboard');
   };
 
+  const handleSendChat = async () => {
+    if (!chatInput.trim()) return;
+    
+    const userMessage = { text: chatInput, sender: 'user' as const };
+    setChatMessages(prev => [...prev, userMessage]);
+    
+    const currentInput = chatInput;
+    setChatInput('');
+    
+    setChatMessages(prev => [...prev, { text: 'Thinking...', sender: 'bot' as const }]);
+    
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+      
+      if (!apiKey) {
+        throw new Error('API key not configured. Add NEXT_PUBLIC_GOOGLE_API_KEY to .env.local and restart server');
+      }
+
+      // Analyze user input and create appropriate payload
+      const { contextData, instructions, hasRelevantData } = analyzeUserInputAndCreatePayload(currentInput);
+      
+      // Create dynamic prompt based on user intent
+      let enhancedPrompt = `You are a helpful AI assistant for government budget proposals in Nepal. You help government administrators with citizen budget proposals and community issues analysis.
+
+CAPABILITIES:
+- Answer questions about citizen issues and community problems
+- Help draft budget proposals
+- Provide analysis of community priorities
+- Suggest solutions based on real citizen reports
+- Assist with form filling and proposal writing
+
+INSTRUCTIONS: ${instructions || 'Provide helpful, practical responses related to budget proposals and community issues.'}${contextData}
+
+USER QUESTION: ${currentInput}`;
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: enhancedPrompt
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 2048,
+            }
+          })
+        }
+      );
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error?.message || `HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const botResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || 
+        "I received your message but couldn't generate a proper response. Please try rephrasing your question.";
+      
+      // Convert markdown formatting to HTML for better display
+      const formatBotResponse = (text: string) => {
+        return text
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // **bold** to <strong>bold</strong>
+          .replace(/\*(.*?)\*/g, '<em>$1</em>') // *italic* to <em>italic</em>
+          .replace(/###\s*(.*)/g, '<h3 style="font-weight: bold; font-size: 1.1em; margin: 10px 0 5px 0;">$1</h3>') // ### heading
+          .replace(/##\s*(.*)/g, '<h2 style="font-weight: bold; font-size: 1.2em; margin: 12px 0 6px 0;">$1</h2>') // ## heading
+          .replace(/#\s*(.*)/g, '<h1 style="font-weight: bold; font-size: 1.3em; margin: 15px 0 8px 0;">$1</h1>') // # heading
+          .replace(/\n\n/g, '<br><br>') // Double line breaks
+          .replace(/\n/g, '<br>'); // Single line breaks
+      };
+      
+      const formattedResponse = formatBotResponse(botResponse);
+      
+      setChatMessages(prev => {
+        const updated = prev.slice(0, -1);
+        return [...updated, { text: formattedResponse, sender: 'bot' as const }];
+      });
+      
+    } catch (error: any) {
+      console.error('Chatbot Error:', error);
+      
+      let errorMessage = 'Connection error. ';
+      
+      if (error.message.includes('API key')) {
+        errorMessage += 'Please check your API key configuration.';
+      } else if (error.message.includes('not found')) {
+        errorMessage += 'The AI model is temporarily unavailable.';
+      } else if (error.message.includes('quota')) {
+        errorMessage += 'API quota exceeded. Please try again later.';
+      } else {
+        errorMessage += error.message || 'Please try again.';
+      }
+      
+      setChatMessages(prev => {
+        const updated = prev.slice(0, -1);
+        return [...updated, { 
+          text: errorMessage, 
+          sender: 'bot' as const 
+        }];
+      });
+    }
+  };
+
   const aiSuggestion = "Based on 45 citizen reports, the primary issue is vehicle damage and traffic congestion caused by severe road degradation on Prithivi Highway";
 
   const problemStatementText = `The current state of Prithive Highway (between Mangaltar and Khurkot) presents a significant safety hazard to motorists and Passengers. Multiple deep potholes have been reported, causing vehicle damage and forcing traffic to slow dangerously.`;
@@ -327,6 +578,23 @@ export default function CitizenProposals() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
+                  {/* Floating Chatbot Button */}
+                  <button
+                    onClick={() => setShowChatbot(!showChatbot)}
+                    className="w-12 h-12 bg-[#2D3F7B] hover:bg-[#19295C] text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110"
+                    aria-label="Toggle chatbot"
+                  >
+                    {showChatbot ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                      </svg>
+                    )}
+                  </button>
+
                   <button
                     onClick={handleSaveDraft}
                     disabled={savingDraft}
@@ -375,20 +643,7 @@ export default function CitizenProposals() {
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                   <label className="block text-sm font-semibold text-slate-900 mb-3">Problem Statement</label>
                   
-                  {/* AI Suggestion */}
-                  <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-white border border-blue-100 rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-gradient-to-r from-[#2D3F7B] to-[#19295C] rounded-lg flex items-center justify-center flex-shrink-0">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-[#2D3F7B] mb-1">AI Suggestion:</p>
-                        <p className="text-sm text-[#19295C]">{aiSuggestion}</p>
-                      </div>
-                    </div>
-                  </div>
+
 
                   <textarea
                     value={problemStatement}
@@ -573,8 +828,102 @@ export default function CitizenProposals() {
 
           {/* toast */}
           {toast && (
-            <div className="fixed right-6 bottom-6 z-50 bg-[#19295C] text-white px-4 py-2 rounded-lg shadow-lg">
+            <div className="fixed right-6 bottom-24 z-50 bg-[#19295C] text-white px-4 py-2 rounded-lg shadow-lg">
               {toast}
+            </div>
+          )}
+
+          {/* Chatbot Panel */}
+          {showChatbot && (
+            <div className="fixed right-6 top-32 z-50 w-96 h-[550px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
+              {/* Chatbot Header */}
+              <div className="bg-gradient-to-r from-[#2D3F7B] to-[#19295C] text-white p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-base">Hamro Sir</h3>
+                    <p className="text-xs text-white/80">Online</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowChatbot(false)}
+                  className="hover:bg-white/20 p-1 rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Chat Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50">
+                {chatMessages.map((msg, idx) => (
+                  <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                      msg.sender === 'user' 
+                        ? 'bg-[#2D3F7B] text-white rounded-br-sm' 
+                        : 'bg-white text-slate-800 rounded-bl-sm shadow-sm border border-slate-200'
+                    }`}>
+                      {msg.sender === 'bot' ? (
+                        <div 
+                          className="text-sm"
+                          dangerouslySetInnerHTML={{ __html: msg.text }}
+                        />
+                      ) : (
+                        <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <div ref={chatMessagesEndRef} />
+              </div>
+
+              {/* Chat Input */}
+              <div className="p-4 bg-white border-t border-slate-200">
+                {/* Hint buttons */}
+                <div className="mb-3 flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => setChatInput("Top issues")}
+                    className="px-3 py-1 text-xs bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 transition-colors"
+                  >
+                    Top Issues
+                  </button>
+                  <button
+                    onClick={() => setChatInput("Help draft")}
+                    className="px-3 py-1 text-xs bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 transition-colors"
+                  >
+                    Help Draft
+                  </button>
+                  <button
+                    onClick={() => setChatInput("Budget estimate")}
+                    className="px-3 py-1 text-xs bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 transition-colors"
+                  >
+                    Budget Estimate
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSendChat()}
+                    placeholder="Ask me anything..."
+                    className="flex-1 px-4 py-2 border border-slate-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#2D3F7B] focus:border-transparent text-sm text-slate-900"
+                  />
+                  <button
+                    onClick={handleSendChat}
+                    className="bg-[#2D3F7B] hover:bg-[#19295C] text-white p-2 rounded-full transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m6 12 6-6 6 6M12 6v12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

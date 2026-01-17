@@ -387,41 +387,45 @@ export default function HeatmapVisualization({ data, selectedWard }: HeatmapVisu
       ))}
       
       {/* Enhanced Priority Legend */}
-      <div className="absolute bottom-4 left-4 z-10 bg-white/95 backdrop-blur-sm p-4 rounded-lg shadow-xl max-w-xs border border-slate-200">
-        <h4 className="font-bold text-sm mb-3 text-slate-800">🔥 Priority Heat Map</h4>
-        <div className="space-y-2 text-xs">
-          <div className="flex items-center gap-3">
-            <div className="w-5 h-5 rounded-full" style={{ background: 'radial-gradient(circle, #00ff88 20%, transparent 80%)' }}></div>
-            <span className="font-medium">Low Priority (0-5)</span>
+      <div className="leaflet-bottom leaflet-left" style={{ pointerEvents: 'none' }}>
+        <div className="leaflet-control leaflet-control-custom bg-white/95 backdrop-blur-sm p-4 rounded-lg shadow-xl max-w-xs border border-slate-200" style={{ pointerEvents: 'auto', margin: '10px' }}>
+          <h4 className="font-bold text-sm mb-3 text-slate-800">🔥 Priority Heat Map</h4>
+          <div className="space-y-2 text-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 rounded-full" style={{ background: 'radial-gradient(circle, #00ff88 20%, transparent 80%)' }}></div>
+              <span className="font-medium">Low Priority (0-5)</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 rounded-full" style={{ background: 'radial-gradient(circle, #ffcc00 20%, transparent 80%)' }}></div>
+              <span className="font-medium">Moderate Priority (5-10)</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 rounded-full" style={{ background: 'radial-gradient(circle, #ff6600 20%, transparent 80%)' }}></div>
+              <span className="font-medium">High Priority (10-15)</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 rounded-full" style={{ background: 'radial-gradient(circle, #ff0000 20%, transparent 80%)' }}></div>
+              <span className="font-medium">Critical Priority (15+)</span>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="w-5 h-5 rounded-full" style={{ background: 'radial-gradient(circle, #ffcc00 20%, transparent 80%)' }}></div>
-            <span className="font-medium">Moderate Priority (5-10)</span>
+          <div className="mt-4 pt-3 border-t border-slate-200">
+            <p className="text-xs text-slate-600 leading-relaxed">
+              🎯 <strong>Core colors</strong> = Issue categories<br/>
+              📏 <strong>Shape size</strong> = Priority intensity<br/>
+              🌊 <strong>Heat areas</strong> = Issue clusters<br/>
+              🗺️ <strong>Ward boundaries</strong> = Administrative areas
+            </p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="w-5 h-5 rounded-full" style={{ background: 'radial-gradient(circle, #ff6600 20%, transparent 80%)' }}></div>
-            <span className="font-medium">High Priority (10-15)</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-5 h-5 rounded-full" style={{ background: 'radial-gradient(circle, #ff0000 20%, transparent 80%)' }}></div>
-            <span className="font-medium">Critical Priority (15+)</span>
-          </div>
-        </div>
-        <div className="mt-4 pt-3 border-t border-slate-200">
-          <p className="text-xs text-slate-600 leading-relaxed">
-            🎯 <strong>Core colors</strong> = Issue categories<br/>
-            📏 <strong>Shape size</strong> = Priority intensity<br/>
-            🌊 <strong>Heat areas</strong> = Issue clusters<br/>
-            🗺️ <strong>Ward boundaries</strong> = Administrative areas
-          </p>
         </div>
       </div>
       
       {/* Issue count indicator */}
-      <div className="absolute top-4 right-4 z-10 bg-white/95 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg border border-slate-200">
-        <span className="text-sm font-bold text-slate-800">
-          📍 {filteredData.length} Issues {selectedWard ? `in Ward ${selectedWard}` : 'Total'}
-        </span>
+      <div className="leaflet-top leaflet-right" style={{ pointerEvents: 'none' }}>
+        <div className="leaflet-control leaflet-control-custom bg-white/95 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg border border-slate-200" style={{ pointerEvents: 'auto', margin: '10px' }}>
+          <span className="text-sm font-bold text-slate-800">
+            📍 {filteredData.length} Issues {selectedWard ? `in Ward ${selectedWard}` : 'Total'}
+          </span>
+        </div>
       </div>
     </MapContainer>
   );

@@ -33,7 +33,10 @@ export default function CitizenIssues() {
         const response = await fetch('http://localhost:5000/api/issues');
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch issues: ${response.statusText}`);
+          const errorMessage = `Unable to load issues. Server returned: ${response.status} ${response.statusText}`;
+          setError(errorMessage);
+          console.warn('Issues API error:', response.status, response.statusText);
+          return;
         }
 
         const data = await response.json();
@@ -41,7 +44,7 @@ export default function CitizenIssues() {
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Error fetching issues';
         setError(errorMessage);
-        console.error('Error:', err);
+        console.warn('Network error fetching issues:', err);
       } finally {
         setLoading(false);
       }
@@ -51,7 +54,11 @@ export default function CitizenIssues() {
 
     // Refresh every 30 seconds
     const interval = setInterval(fetchIssues, 30000);
-    return () => clearInterval(interval);
+    
+    // Cleanup interval on component unmount
+    return () => {
+      clearInterval(interval);
+    };
   }, []);
 
   const selectPriority = (val: string) => {
@@ -88,11 +95,16 @@ export default function CitizenIssues() {
   const handleIssueClick = async (issue: Issue) => {
     try {
       const response = await fetch(`http://localhost:5000/api/issues/${issue.id}`);
-      if (!response.ok) throw new Error('Failed to fetch issue details');
+      if (!response.ok) {
+        console.warn(`Failed to fetch detailed data for issue ${issue.id}, using cached data`);
+        setSelectedIssue(issue);
+        return;
+      }
       const data = await response.json();
       setSelectedIssue(data);
     } catch (err) {
-      console.error('Error fetching issue details:', err);
+      console.warn('Error fetching issue details, using cached data:', err);
+      // Fallback to using the issue data we already have
       setSelectedIssue(issue);
     }
   };
@@ -104,10 +116,20 @@ export default function CitizenIssues() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700 mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading issues...</p>
+      <div className="min-h-screen bg-slate-50" style={{ fontFamily: 'Poppins, sans-serif' }}>
+        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+
+        <div className="ml-64 flex flex-col min-h-screen">
+          <div className="sticky top-0 z-20">
+            <Topbar activeTab={activeTab} onLogout={handleLogout} />
+          </div>
+
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700 mx-auto mb-4"></div>
+              <p className="text-slate-600">Loading issues...</p>
+            </div>
+          </div>
         </div>
       </div>
     );

@@ -1,4 +1,5 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { Issue, Report } from "@/types/issue";
 
 interface IssueDetailProps {
@@ -14,6 +15,23 @@ export default function IssueDetail({
   onShowReportsToggle,
   onBack,
 }: IssueDetailProps) {
+  const router = useRouter();
+
+  const handleDraftProposal = () => {
+    // Store issue data in localStorage to pre-populate the proposal form
+    const issueData = {
+      title: issue.title,
+      location: issue.location,
+      category: issue.category,
+      description: issue.description,
+      priority: issue.priority
+    };
+    localStorage.setItem('draft_proposal_issue_data', JSON.stringify(issueData));
+    
+    // Navigate to citizen proposals page
+    router.push('/citizen-proposals');
+  };
+
   return (
     <div
       className="min-h-screen bg-slate-50"
@@ -307,7 +325,10 @@ export default function IssueDetail({
                     </div>
                   </div>
 
-                  <button className="px-6 py-3 bg-[#2D3F7B] text-white rounded-xl font-semibold hover:bg-[#19295C] transition-colors shadow-sm">
+                  <button 
+                    onClick={handleDraftProposal}
+                    className="px-6 py-3 bg-[#2D3F7B] text-white rounded-xl font-semibold hover:bg-[#19295C] transition-colors shadow-sm"
+                  >
                     Draft Proposal
                   </button>
                 </div>

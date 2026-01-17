@@ -352,6 +352,7 @@ export default function ActiveProjects() {
 
   const openEditProject = (project: Project) => {
     setEditForm({ ...project });
+    setProgressValue(project.progress || 0);
     setShowEditModal(true);
   };
 
@@ -364,6 +365,7 @@ export default function ActiveProjects() {
 
   const openProgressModal = (project: Project) => {
     setProgressValue(project.progress || 0);
+    setEditForm(prev => ({ ...prev, progress: project.progress || 0 }));
     setShowProgressModal(true);
   };
 
@@ -538,22 +540,14 @@ export default function ActiveProjects() {
                     <div className="mb-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-dark">Overall Progress</span>
-                        <span className="text-sm font-bold text-dark">{selectedProject.progress}%</span>
                       </div>
                       <div className="w-full">
-                        {isAdmin ? (
-                          <div>
-                            <input type="range" min={0} max={100} value={editForm?.progress ?? selectedProject.progress} onChange={e => setEditForm(prev => ({ ...prev, progress: Number(e.target.value) }))} className="w-full" />
-                            <div className="text-sm text-dark mt-1">{editForm?.progress ?? selectedProject.progress}%</div>
-                          </div>
-                        ) : (
-                          <div className="w-full bg-slate-200 rounded-full h-3">
-                            <div 
-                              className="h-3 rounded-full transition-all duration-500"
-                              style={{width: `${selectedProject.progress}%`, background: 'linear-gradient(90deg, var(--secondary), var(--primary))'}}
-                            ></div>
-                          </div>
-                        )}
+                        <div className="w-full bg-slate-200 rounded-full h-3">
+                          <div 
+                            className="h-3 rounded-full transition-all duration-500"
+                            style={{width: `${progressValue}%`, backgroundColor: '#000000'}}
+                          ></div>
+                        </div>
                       </div>
                     </div>
 
@@ -805,15 +799,27 @@ export default function ActiveProjects() {
               <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-lg">
                 <h3 className="text-lg font-semibold mb-4 text-slate-900">Update Progress</h3>
                 <div className="space-y-3">
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    value={progressValue}
-                    onChange={e => setProgressValue(Number(e.target.value))}
-                    className="w-full accent-[#19295c]"
-                    style={{ accentColor: '#19295c' }}
-                  />
+                  <div className="relative">
+                    {/* Visual Progress Bar */}
+                    <div className="w-full bg-slate-200 rounded-full h-3 mb-2">
+                      <div 
+                        className="h-3 rounded-full transition-all duration-300"
+                        style={{width: `${progressValue}%`, backgroundColor: '#000000'}}
+                      ></div>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={progressValue}
+                      onChange={e => {
+                        const newProgress = Number(e.target.value);
+                        setProgressValue(newProgress);
+                        setEditForm(prev => ({ ...prev, progress: newProgress }));
+                      }}
+                      className="absolute top-0 left-0 w-full h-3 opacity-0 cursor-pointer"
+                    />
+                  </div>
                   <div className="text-sm font-medium text-[#19295c]">{progressValue}%</div>
                 </div>
                 <div className="mt-4 flex justify-end gap-3">
