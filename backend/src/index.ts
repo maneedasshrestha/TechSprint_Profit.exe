@@ -5,6 +5,8 @@ import dotenv from "dotenv";
 import issuesRoutes from "./routes/issues";
 import heatmapRoutes from "./routes/heatmap";
 import postsRoutes from "./routes/posts";
+import proposalRoutes from "./routes/proposals";
+import blockchainService from "./services/blockchainService";
 import {
   adminLogin,
   verifyAdminToken,
@@ -48,6 +50,15 @@ app.use("/api/heatmap", heatmapRoutes);
 // Import and use posts routes
 app.use("/api", postsRoutes);
 
+// Import and use proposal routes (blockchain voting)
+app.use("/api/proposals", proposalRoutes);
+
+// Initialize blockchain service if contract address is set
+if (process.env.CONTRACT_ADDRESS) {
+  blockchainService.initContract(process.env.CONTRACT_ADDRESS);
+  console.log('⛓️  Blockchain service initialized');
+}
+
 // Start server
 app.listen(port, () => {
   console.log(`✅ Server running on port ${port}`);
@@ -58,6 +69,8 @@ app.listen(port, () => {
     `🗺️  Ward API: http://localhost:${port}/api/heatmap/ward/:wardNumber`
   );
   console.log(`🗺️  Summary API: http://localhost:${port}/api/heatmap/summary`);
+  console.log(`🗳️  Proposals API: http://localhost:${port}/api/proposals`);
+  console.log(`⛓️  Blockchain: ${process.env.CONTRACT_ADDRESS ? 'Connected' : 'Not deployed yet'}`);
 });
 
 export default app;

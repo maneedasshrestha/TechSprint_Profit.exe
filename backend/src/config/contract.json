@@ -1,0 +1,250 @@
+{
+  "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "abi": [
+    {
+      "type": "event",
+      "anonymous": false,
+      "name": "ProposalClosed",
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "proposalId",
+          "indexed": true
+        },
+        {
+          "type": "uint256",
+          "name": "finalVoteCount",
+          "indexed": false
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "anonymous": false,
+      "name": "ProposalCreated",
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "proposalId",
+          "indexed": true
+        },
+        {
+          "type": "string",
+          "name": "title",
+          "indexed": false
+        },
+        {
+          "type": "address",
+          "name": "creator",
+          "indexed": false
+        },
+        {
+          "type": "uint256",
+          "name": "endsAt",
+          "indexed": false
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "anonymous": false,
+      "name": "VoteCast",
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "proposalId",
+          "indexed": true
+        },
+        {
+          "type": "address",
+          "name": "voter",
+          "indexed": true
+        },
+        {
+          "type": "uint256",
+          "name": "timestamp",
+          "indexed": false
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "closeProposal",
+      "constant": false,
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "_proposalId"
+        }
+      ],
+      "outputs": []
+    },
+    {
+      "type": "function",
+      "name": "createProposal",
+      "constant": false,
+      "payable": false,
+      "inputs": [
+        {
+          "type": "string",
+          "name": "_title"
+        },
+        {
+          "type": "uint256",
+          "name": "_duration"
+        }
+      ],
+      "outputs": [
+        {
+          "type": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "getProposal",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "_proposalId"
+        }
+      ],
+      "outputs": [
+        {
+          "type": "uint256",
+          "name": "id"
+        },
+        {
+          "type": "string",
+          "name": "title"
+        },
+        {
+          "type": "address",
+          "name": "creator"
+        },
+        {
+          "type": "uint256",
+          "name": "voteCount"
+        },
+        {
+          "type": "uint256",
+          "name": "endsAt"
+        },
+        {
+          "type": "bool",
+          "name": "active"
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "hasUserVoted",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "_proposalId"
+        },
+        {
+          "type": "address",
+          "name": "_voter"
+        }
+      ],
+      "outputs": [
+        {
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "hasVoted",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256"
+        },
+        {
+          "type": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "proposalCount",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [],
+      "outputs": [
+        {
+          "type": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "proposals",
+      "constant": true,
+      "stateMutability": "view",
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "type": "uint256",
+          "name": "id"
+        },
+        {
+          "type": "string",
+          "name": "title"
+        },
+        {
+          "type": "address",
+          "name": "creator"
+        },
+        {
+          "type": "uint256",
+          "name": "voteCount"
+        },
+        {
+          "type": "uint256",
+          "name": "endsAt"
+        },
+        {
+          "type": "bool",
+          "name": "active"
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "vote",
+      "constant": false,
+      "payable": false,
+      "inputs": [
+        {
+          "type": "uint256",
+          "name": "_proposalId"
+        }
+      ],
+      "outputs": []
+    }
+  ]
+}
