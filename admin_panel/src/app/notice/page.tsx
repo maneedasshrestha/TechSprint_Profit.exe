@@ -13,22 +13,20 @@ interface NoticeItem {
   created_at: string;
   is_pinned: boolean;
   status: 'published' | 'draft' | 'archived';
-  type?: 'urgent' | 'general' | 'maintenance' | 'event';
-  priority?: 'high' | 'medium' | 'low';
+  type?: 'urgent' | 'general' | 'maintenance' | 'event' | 'agriculture' | 'health' | 'education' | 'transport' | 'environment' | 'technology' | 'sports' | 'culture';
 }
 
 export default function Notice() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('notice');
-  const [filterType, setFilterType] = useState<'all' | 'urgent' | 'general' | 'maintenance' | 'event'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'urgent' | 'general' | 'maintenance' | 'event' | 'agriculture' | 'health' | 'education' | 'transport' | 'environment' | 'technology' | 'sports' | 'culture'>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newNotice, setNewNotice] = useState({
     title: '',
     description: '',
     image_url: '',
     is_pinned: false,
-    type: 'general' as const,
-    priority: 'medium' as const
+    type: 'general' as 'urgent' | 'general' | 'maintenance' | 'event' | 'agriculture' | 'health' | 'education' | 'transport' | 'environment' | 'technology' | 'sports' | 'culture'
   });
   const [notices, setNotices] = useState<NoticeItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,6 +119,47 @@ export default function Notice() {
     setNewNotice({...newNotice, image_url: ''});
   };
 
+  // Frontend-only type assignment based on content keywords
+  const assignTypeBasedOnContent = (title: string, description: string): string => {
+    const content = `${title} ${description}`.toLowerCase();
+    
+    if (content.includes('urgent') || content.includes('emergency') || content.includes('critical')) {
+      return 'urgent';
+    }
+    if (content.includes('maintenance') || content.includes('repair') || content.includes('fix')) {
+      return 'maintenance';
+    }
+    if (content.includes('event') || content.includes('celebration') || content.includes('festival')) {
+      return 'event';
+    }
+    if (content.includes('agriculture') || content.includes('farming') || content.includes('crop')) {
+      return 'agriculture';
+    }
+    if (content.includes('health') || content.includes('medical') || content.includes('hospital')) {
+      return 'health';
+    }
+    if (content.includes('education') || content.includes('school') || content.includes('student')) {
+      return 'education';
+    }
+    if (content.includes('transport') || content.includes('bus') || content.includes('traffic')) {
+      return 'transport';
+    }
+    if (content.includes('environment') || content.includes('clean') || content.includes('pollution')) {
+      return 'environment';
+    }
+    if (content.includes('technology') || content.includes('digital') || content.includes('internet')) {
+      return 'technology';
+    }
+    if (content.includes('sports') || content.includes('game') || content.includes('match')) {
+      return 'sports';
+    }
+    if (content.includes('culture') || content.includes('art') || content.includes('tradition')) {
+      return 'culture';
+    }
+    
+    return 'general';
+  };
+
   const loadNotices = async () => {
     try {
       setLoading(true);
@@ -135,7 +174,13 @@ export default function Notice() {
         return;
       }
 
-      setNotices(data || []);
+      // Add frontend type assignment based on keywords in title/description
+      const noticesWithTypes = (data || []).map(notice => ({
+        ...notice,
+        type: assignTypeBasedOnContent(notice.title, notice.description)
+      }));
+
+      setNotices(noticesWithTypes);
     } catch (error) {
       console.error('Error loading notices:', error);
     } finally {
@@ -155,30 +200,34 @@ export default function Notice() {
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'urgent':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'maintenance':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'event':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'general':
         return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'agriculture':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'health':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'education':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'transport':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'environment':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'technology':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'sports':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'culture':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-blue-100 text-blue-800 border-blue-200';
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'bg-red-100 text-red-800';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'low':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   const handleCreateNotice = async () => {
     try {
@@ -215,28 +264,35 @@ export default function Notice() {
         .select();
 
       if (error) {
-        console.error('Error creating notice:', error);
+        console.error('Error creating notice:', error.message || error);
         alert('Failed to create notice. Please try again.');
         return;
       }
 
       console.log('Notice created successfully:', data);
+      
+      // Add the newly created notice to the local state with assigned type
+      if (data && data[0]) {
+        const newNoticeWithType = {
+          ...data[0],
+          type: newNotice.type // Use the selected type for immediate display
+        };
+        setNotices(prevNotices => [newNoticeWithType, ...prevNotices]);
+      }
+      
       setShowCreateModal(false);
       setNewNotice({
         title: '',
         description: '',
         image_url: '',
         is_pinned: false,
-        type: 'general',
-        priority: 'medium'
+        type: 'general'
       });
       
       // Reset image states
       setImageFile(null);
       setImagePreview(null);
 
-      // Reload notices to show the new one
-      loadNotices();
     } catch (error) {
       console.error('Error creating notice:', error);
       alert('Failed to create notice. Please try again.');
@@ -274,86 +330,34 @@ export default function Notice() {
           </div>
 
           {/* Filter Tabs */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {[
               { key: 'all', label: 'All Notices' },
               { key: 'urgent', label: 'Urgent' },
               { key: 'general', label: 'General' },
               { key: 'maintenance', label: 'Maintenance' },
-              { key: 'event', label: 'Events' }
+              { key: 'event', label: 'Events' },
+              { key: 'agriculture', label: 'Agriculture' },
+              { key: 'health', label: 'Health' },
+              { key: 'education', label: 'Education' },
+              { key: 'transport', label: 'Transport' },
+              { key: 'environment', label: 'Environment' },
+              { key: 'technology', label: 'Technology' },
+              { key: 'sports', label: 'Sports' },
+              { key: 'culture', label: 'Culture' }
             ].map(filter => (
               <button
                 key={filter.key}
                 onClick={() => setFilterType(filter.key as any)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
                   filterType === filter.key
-                    ? 'bg-blue-500 text-white'
+                    ? 'bg-blue-100 text-blue-800 border border-blue-200'
                     : 'bg-white text-slate-600 hover:bg-blue-50 border border-slate-200'
                 }`}
               >
                 {filter.label}
               </button>
             ))}
-          </div>
-
-          {/* Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-slate-600 text-sm">Total Notices</p>
-                  <p className="text-2xl font-bold text-slate-800">{notices.length}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-red-100 rounded-lg">
-                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-slate-600 text-sm">Urgent Notices</p>
-                  <p className="text-2xl font-bold text-slate-800">{notices.filter(n => n.type === 'urgent').length}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-slate-600 text-sm">Events</p>
-                  <p className="text-2xl font-bold text-slate-800">{notices.filter(n => n.type === 'event').length}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-yellow-100 rounded-lg">
-                  <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-slate-600 text-sm">Maintenance</p>
-                  <p className="text-2xl font-bold text-slate-800">{notices.filter(n => n.type === 'maintenance').length}</p>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Notices List */}
@@ -367,11 +371,6 @@ export default function Notice() {
                       {notice.type && (
                         <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${getTypeColor(notice.type)}`}>
                           {notice.type.charAt(0).toUpperCase() + notice.type.slice(1)}
-                        </span>
-                      )}
-                      {notice.priority && (
-                        <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getPriorityColor(notice.priority)}`}>
-                          {notice.priority.toUpperCase()}
                         </span>
                       )}
                       {notice.is_pinned && (
@@ -513,33 +512,26 @@ export default function Notice() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
-                  <select
-                    value={newNotice.type}
-                    onChange={(e) => setNewNotice({...newNotice, type: e.target.value as any})}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700"
-                  >
-                    <option value="general">General</option>
-                    <option value="urgent">Urgent</option>
-                    <option value="maintenance">Maintenance</option>
-                    <option value="event">Event</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Priority</label>
-                  <select
-                    value={newNotice.priority}
-                    onChange={(e) => setNewNotice({...newNotice, priority: e.target.value as any})}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700"
-                  >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                  </select>
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
+                <select
+                  value={newNotice.type}
+                  onChange={(e) => setNewNotice({...newNotice, type: e.target.value as any})}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700"
+                >
+                  <option value="general">General</option>
+                  <option value="urgent">Urgent</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="event">Event</option>
+                  <option value="agriculture">Agriculture</option>
+                  <option value="health">Health</option>
+                  <option value="education">Education</option>
+                  <option value="transport">Transport</option>
+                  <option value="environment">Environment</option>
+                  <option value="technology">Technology</option>
+                  <option value="sports">Sports</option>
+                  <option value="culture">Culture</option>
+                </select>
               </div>
 
               <div className="flex items-center gap-2">
