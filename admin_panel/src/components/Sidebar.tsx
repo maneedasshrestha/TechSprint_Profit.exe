@@ -18,6 +18,9 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       case 'dashboard':
         router.push('/dashboard');
         break;
+      case 'notice':
+        router.push('/notice');
+        break;
       case 'citizen-issues':
         router.push('/citizen-issues');
         break;
@@ -49,6 +52,16 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       icon: (
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
           <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+        </svg>
+      )
+    },
+    { 
+      id: 'notice', 
+      label: 'Notice', 
+      icon: (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M4 2a2 2 0 00-2 2v12a2 2 0 002 2h8.586A2 2 0 0014 17.414L17.414 14A2 2 0 0018 12.586V4a2 2 0 00-2-2H4zm2 3a1 1 0 000 2h8a1 1 0 100-2H6zm0 3a1 1 0 100 2h8a1 1 0 100-2H6zm0 3a1 1 0 100 2h5a1 1 0 100-2H6z" />
+          <path d="M15 12v2.586l-3-3H14a1 1 0 011 1z" />
         </svg>
       )
     },
