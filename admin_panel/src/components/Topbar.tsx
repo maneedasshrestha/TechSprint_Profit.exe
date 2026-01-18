@@ -39,6 +39,7 @@ export default function Topbar({ activeTab, onLogout }: TopbarProps) {
   const getTabTitle = (tab: string) => {
     switch(tab) {
       case 'dashboard': return 'Dashboard';
+      case 'notice': return 'Notice';
       case 'citizen-issues': return 'Citizen Issues';
       case 'citizen-proposals': return 'Proposals';
       case 'active-projects': return 'Active Projects';
