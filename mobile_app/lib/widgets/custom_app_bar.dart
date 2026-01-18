@@ -15,9 +15,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       shadowColor: Colors.black.withOpacity(0.15),
       automaticallyImplyLeading: false,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(32),
-        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
       ),
       title: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -28,7 +26,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               Container(
                 width: 60,
                 height: 60,
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 child: Image.asset(
                   'assets/images/logo.png',
                   fit: BoxFit.contain,
@@ -62,17 +62,22 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   size: 30,
                 ),
               ),
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F0FF),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.notifications_rounded,
-                  color: Theme.of(context).primaryColor,
-                  size: 25,
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(context, '/notices');
+                },
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F0FF),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.notifications_rounded,
+                    color: Theme.of(context).primaryColor,
+                    size: 25,
+                  ),
                 ),
               ),
             ],

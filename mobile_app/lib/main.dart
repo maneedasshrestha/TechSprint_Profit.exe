@@ -4,8 +4,8 @@ import 'config/supabase_config.dart';
 
 import 'screens/login_screen.dart';
 import 'screens/main_navigation_screen.dart';
+import 'screens/notices_screen.dart';
 import 'services/auth_service.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,8 +39,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const MainNavigationScreen(),
+        '/notices': (context) => const NoticesScreen(),
       },
     );
   }
 }
-   

@@ -7,8 +7,11 @@ import '../models/user_model.dart';
 import '../services/post_service.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/municipal_post_card.dart';
+import '../widgets/official_notice_card.dart';
 import 'create_post_screen.dart';
 import '../services/auth_service.dart';
+import '../services/notice_service.dart';
+import '../models/notice.dart';
 import 'post_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -22,28 +25,47 @@ class _HomeScreenState extends State<HomeScreen> {
   final PostService _postService = PostService();
   final ImagePicker _picker = ImagePicker();
   final AuthService _authService = AuthService();
+  final NoticeService _noticeService = NoticeService();
   List<PostModel> _posts = [];
+  Notice? _pinnedNotice;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _loadPosts();
+    _loadPinnedNotice();
+  }
+
+  Future<void> _loadPinnedNotice() async {
+    try {
+      final pinnedNotices = await _noticeService.getPinnedNotices();
+      if (pinnedNotices.isNotEmpty && mounted) {
+        setState(() {
+          _pinnedNotice = pinnedNotices.first;
+        });
+      }
+    } catch (e) {
+      print('Error loading pinned notice: $e');
+    }
   }
 
   MunicipalPost _createDummyMunicipalPost() {
     return MunicipalPost(
       organizationName: 'Bhaktapur Municipality',
-      profileImageUrl: 'https://via.placeholder.com/100x100/1877F2/FFFFFF?text=BM',
+      profileImageUrl:
+          'https://via.placeholder.com/100x100/1877F2/FFFFFF?text=BM',
       postTime: '2 hours ago',
       title: 'Main Street Road Repair – Project Update !!!',
-      content: 'The Main Street pothole repair project is now underway! Here\'s the latest progress:',
+      content:
+          'The Main Street pothole repair project is now underway! Here\'s the latest progress:',
       bulletPoints: [
         'Phase 1: Road resurfacing completed (from City Library to 5th Street).',
         'Phase 2: Street signage installation in progress.',
         'Expected completion: 3 weeks.',
       ],
-      imageUrl: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
+      imageUrl:
+          'https://images.unsplash.com/photo-1581094794329-c8112a89af12?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
       isVerified: true,
       likesCount: 430,
       commentsCount: 12,
@@ -154,7 +176,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               decoration: const BoxDecoration(
                                 shape: BoxShape.circle,
                                 gradient: LinearGradient(
-                                  colors: [Color(0xFF1976D2), Color(0xFFE8F0FF) ],
+                                  colors: [
+                                    Color(0xFF1976D2),
+                                    Color(0xFFE8F0FF),
+                                  ],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ),
@@ -186,7 +211,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                 decoration: const BoxDecoration(
                                   shape: BoxShape.circle,
                                   gradient: LinearGradient(
-                                    colors: [Color(0xFF1976D2), Color(0xFFE8F0FF)],
+                                    colors: [
+                                      Color(0xFF1976D2),
+                                      Color(0xFFE8F0FF),
+                                    ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   ),
@@ -279,30 +307,47 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Posts list
                 Expanded(
                   child: RefreshIndicator(
-                    onRefresh: _loadPosts,
-                    child: _posts.isEmpty
-                        ? const Center(
-                            child: Text('No issues yet. Create the first one!'),
-                          )
-                        : ListView.builder(
-                            itemCount: _posts.length,
-                            itemBuilder: (context, index) {
-                              final post = _posts[index];
-                              return PostCard(
-                                key: ValueKey(post.id),
-                                post: post,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          PostDetailScreen(post: post),
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                          ),
+                    onRefresh: () async {
+                      await _loadPosts();
+                      await _loadPinnedNotice();
+                    },
+                    child: ListView.builder(
+                      itemCount: _posts.length + (_pinnedNotice != null ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        // Show official notice as first item if available
+                        if (index == 0 && _pinnedNotice != null) {
+                          return Container(
+                            margin: const EdgeInsets.only(
+                              bottom: 16,
+                            ),
+                            child: OfficialNoticeCard(
+                              notice: _pinnedNotice!,
+                            ),
+                          );
+                        }
+
+                        // Show regular posts after the official notice
+                        final postIndex = _pinnedNotice != null ? index - 1 : index;
+                        if (postIndex >= _posts.length) {
+                          return const SizedBox.shrink();
+                        }
+
+                        final post = _posts[postIndex];
+                        return PostCard(
+                          key: ValueKey(post.id),
+                          post: post,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    PostDetailScreen(post: post),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
                   ),
                 ),
               ],
