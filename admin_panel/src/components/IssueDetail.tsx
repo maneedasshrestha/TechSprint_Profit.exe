@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { Issue, Report } from "@/types/issue";
+import { Issue, Report, Thread } from "@/types/issue";
 
 interface IssueDetailProps {
   issue: Issue;
@@ -265,8 +265,50 @@ export default function IssueDetail({
                         Recent Citizen Reports
                       </h3>
                       <div className="space-y-4">
-                        {issue.recentReports &&
-                        issue.recentReports.length > 0 ? (
+                        {issue.threads && issue.threads.length > 0 ? (
+                          issue.threads.map((thread: Thread) => (
+                            <div
+                              key={thread.id}
+                              className="flex gap-4 p-4 bg-white rounded-xl border border-slate-100 shadow-sm"
+                            >
+                              <div className="w-10 h-10 bg-[#2D3F7B] rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                {thread.userAvatar ? (
+                                  <img
+                                    src={thread.userAvatar}
+                                    alt={thread.userName}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="text-white font-semibold">
+                                    {thread.userName.charAt(0).toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <span className="font-semibold text-slate-900">
+                                    {thread.userName}
+                                  </span>
+                                  <span className="text-sm text-slate-500">
+                                    {thread.timeAgo}
+                                  </span>
+                                </div>
+                                <p className="text-slate-700 mb-3 leading-relaxed">
+                                  {thread.content}
+                                </p>
+                                {thread.image_url && (
+                                  <div className="mt-3">
+                                    <img
+                                      src={thread.image_url}
+                                      alt="Thread image"
+                                      className="w-48 h-32 object-cover rounded-lg border border-slate-200"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        ) : issue.recentReports && issue.recentReports.length > 0 ? (
                           issue.recentReports.map(
                             (report: Report, index: number) => (
                               <div
