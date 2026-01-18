@@ -4,10 +4,7 @@ import '../models/notice.dart';
 class OfficialNoticeCard extends StatelessWidget {
   final Notice notice;
 
-  const OfficialNoticeCard({
-    super.key,
-    required this.notice,
-  });
+  const OfficialNoticeCard({super.key, required this.notice});
 
   @override
   Widget build(BuildContext context) {

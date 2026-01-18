@@ -312,22 +312,21 @@ class _HomeScreenState extends State<HomeScreen> {
                       await _loadPinnedNotice();
                     },
                     child: ListView.builder(
-                      itemCount: _posts.length + (_pinnedNotice != null ? 1 : 0),
+                      itemCount:
+                          _posts.length + (_pinnedNotice != null ? 1 : 0),
                       itemBuilder: (context, index) {
                         // Show official notice as first item if available
                         if (index == 0 && _pinnedNotice != null) {
                           return Container(
-                            margin: const EdgeInsets.only(
-                              bottom: 16,
-                            ),
-                            child: OfficialNoticeCard(
-                              notice: _pinnedNotice!,
-                            ),
+                            margin: const EdgeInsets.only(bottom: 16),
+                            child: OfficialNoticeCard(notice: _pinnedNotice!),
                           );
                         }
 
                         // Show regular posts after the official notice
-                        final postIndex = _pinnedNotice != null ? index - 1 : index;
+                        final postIndex = _pinnedNotice != null
+                            ? index - 1
+                            : index;
                         if (postIndex >= _posts.length) {
                           return const SizedBox.shrink();
                         }
