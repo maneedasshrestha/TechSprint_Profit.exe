@@ -41,9 +41,21 @@ export default function Voting() {
   // Load voting items from backend API and localStorage
   useEffect(() => {
     const loadVotingData = async () => {
+      // Helper function to deduplicate items by ID
+      const deduplicateItems = (items: VotingItem[]): VotingItem[] => {
+        const seen = new Set<string>();
+        return items.filter(item => {
+          if (seen.has(item.id)) {
+            return false;
+          }
+          seen.add(item.id);
+          return true;
+        });
+      };
+
       const defaultVotingItems: VotingItem[] = [
         {
-          id: '1',
+          id: 'default-1',
           title: 'New Public Park Development',
           description: 'Proposal to develop a new public park in the downtown area with playground, walking trails, and community spaces.',
           category: 'Infrastructure',
@@ -60,7 +72,7 @@ export default function Voting() {
           priority: 'high'
         },
         {
-          id: '2',
+          id: 'default-2',
           title: 'Road Maintenance Budget Increase',
           description: 'Increase the annual road maintenance budget to improve city infrastructure and reduce potholes.',
           category: 'Budget',
@@ -77,7 +89,7 @@ export default function Voting() {
           priority: 'high'
         },
         {
-          id: '3',
+          id: 'default-3',
           title: 'Community Center Renovation',
           description: 'Renovate the old community center with modern facilities, updated technology, and accessibility improvements.',
           category: 'Community',
@@ -94,7 +106,7 @@ export default function Voting() {
           priority: 'medium'
         },
         {
-          id: '4',
+          id: 'default-4',
           title: 'Bike Lane Network Expansion',
           description: 'Expand the city bike lane network to promote sustainable transportation and reduce traffic congestion.',
           category: 'Transportation',
@@ -150,9 +162,9 @@ export default function Voting() {
               };
             });
 
-            // Combine with default items and localStorage items
+            // Combine and deduplicate items
             const storedItems = JSON.parse(localStorage.getItem('voting_items') || '[]');
-            const allItems = [...defaultVotingItems, ...backendItems, ...storedItems];
+            const allItems = deduplicateItems([...defaultVotingItems, ...backendItems, ...storedItems]);
             setVotingItems(allItems);
           } else {
             throw new Error('Invalid API response');
@@ -206,16 +218,16 @@ export default function Voting() {
             };
           });
 
-          // Combine with default items and localStorage items
+          // Combine and deduplicate items
           const storedItems = JSON.parse(localStorage.getItem('voting_items') || '[]');
-          const allItems = [...defaultVotingItems, ...supabaseItems, ...storedItems];
+          const allItems = deduplicateItems([...defaultVotingItems, ...supabaseItems, ...storedItems]);
           setVotingItems(allItems);
           
         } catch (supabaseError) {
           console.error('Both API and Supabase failed:', supabaseError);
           // Final fallback to localStorage only
           const storedItems = JSON.parse(localStorage.getItem('voting_items') || '[]');
-          const allItems = [...defaultVotingItems, ...storedItems];
+          const allItems = deduplicateItems([...defaultVotingItems, ...storedItems]);
           setVotingItems(allItems);
         }
       }
@@ -350,7 +362,7 @@ export default function Voting() {
                   <div className="absolute top-full mt-1 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-10 min-w-[200px]">
                     {completedProjects.map((project) => (
                       <button
-                        key={project.id}
+                        key={`completed-${project.id}`}
                         onClick={() => handleCompletedProjectSelect(project.id)}
                         className="w-full text-left px-4 py-2 hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg border-b border-slate-100 last:border-b-0"
                       >
@@ -381,7 +393,7 @@ export default function Voting() {
                   <div className="absolute top-full mt-1 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-10 min-w-[200px]">
                     {upcomingProjects.map((project) => (
                       <button
-                        key={project.id}
+                        key={`upcoming-${project.id}`}
                         onClick={() => handleUpcomingProjectSelect(project.id)}
                         className="w-full text-left px-4 py-2 hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg border-b border-slate-100 last:border-b-0"
                       >
@@ -436,8 +448,8 @@ export default function Voting() {
 
           {/* Voting Items Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {filteredItems.map((item) => (
-              <div key={item.id} className="bg-white/80 backdrop-blur-md rounded-xl p-6 shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300">
+            {filteredItems.map((item, index) => (
+              <div key={`voting-item-${item.id}-${index}`} className="bg-white/80 backdrop-blur-md rounded-xl p-6 shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
                     <h3 className="text-xl font-bold text-slate-800 mb-2">{item.title}</h3>
