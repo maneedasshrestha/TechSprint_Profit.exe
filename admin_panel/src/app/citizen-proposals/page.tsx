@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
+import { supabase, type ProposalRecord } from '@/lib/supabase';
 
 // Attachment type (stores preview dataUrl so drafts can persist)
 type Attachment = {
@@ -39,6 +40,12 @@ export default function CitizenProposals() {
   const [savingDraft, setSavingDraft] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  // submission modal state
+  const [showSubmissionModal, setShowSubmissionModal] = useState(false);
+  const [votingStartDate, setVotingStartDate] = useState('');
+  const [votingEndDate, setVotingEndDate] = useState('');
+  const [submitingForVote, setSubmittingForVote] = useState(false);
 
   // draft & draft-modal state
   const [hasDraft, setHasDraft] = useState(false);
@@ -345,18 +352,154 @@ export default function CitizenProposals() {
   };
 
   const handleSubmitForReview = async () => {
-    setSubmitting(true);
-    // simulate upload/submit
-    await new Promise((r) => setTimeout(r, 900));
-    // pretend successful
-    setSubmitting(false);
-    setToast('Proposal submitted for review');
-    // clear form
-    setProjectTitle(''); setProblemStatement(''); setProposedSolution(''); setAttachments([]);
+    // Show the submission modal instead of directly submitting
+    setShowSubmissionModal(true);
   };
 
   const handleBackClick = () => {
     router.push('/dashboard');
+  };
+
+  const handleSubmitForVote = async () => {
+    if (!votingStartDate || !votingEndDate) {
+      setToast('Please select both start and end dates');
+      return;
+    }
+
+    setSubmittingForVote(true);
+    
+    try {
+      // Calculate duration in days for blockchain
+      const startDate = new Date(votingStartDate);
+      const endDate = new Date(votingEndDate);
+      const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Combine all proposal details into description
+      const fullDescription = `Problem Statement: ${problemStatement}\n\nProposed Solution: ${proposedSolution}\n\nDepartment: ${department}\nEstimated Budget: Rs ${estimatedBudget}\nVoting Period: ${votingStartDate} to ${votingEndDate}`;
+      
+      // Try backend API first (with blockchain integration)
+      try {
+        const response = await fetch('http://localhost:5000/api/proposals', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: projectTitle,
+            description: fullDescription,
+            duration_days: durationDays,
+            creator_id: 'admin'
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Proposal saved via API:', result);
+          
+          // Create voting item for local display
+          const newVotingItem = {
+            id: result.proposal.id,
+            title: projectTitle,
+            description: problemStatement + '\n\nProposed Solution: ' + proposedSolution,
+            category: 'Community',
+            categoryColor: 'bg-blue-100 text-blue-800',
+            startDate: votingStartDate,
+            endDate: votingEndDate,
+            totalVotes: 0,
+            yesVotes: 0,
+            noVotes: 0,
+            status: votingStartDate === new Date().toISOString().split('T')[0] ? 'active' : 'upcoming',
+            department: department,
+            location: 'Community Proposal',
+            estimatedBudget: 'Rs ' + estimatedBudget,
+            priority: 'medium'
+          };
+
+          // Save to localStorage for voting page
+          const existingVotes = JSON.parse(localStorage.getItem('voting_items') || '[]');
+          existingVotes.push(newVotingItem);
+          localStorage.setItem('voting_items', JSON.stringify(existingVotes));
+
+          setToast('Proposal submitted for voting successfully!');
+        } else {
+          throw new Error('API request failed');
+        }
+      } catch (apiError) {
+        console.warn('API failed, trying direct Supabase:', apiError);
+        
+        // Fallback to direct Supabase insertion
+        const proposalData: Omit<ProposalRecord, 'id' | 'created_at'> = {
+          title: projectTitle,
+          description: fullDescription,
+          ends_at: new Date(votingEndDate).toISOString(),
+          status: votingStartDate === new Date().toISOString().split('T')[0] ? 'active' : 'active',
+          creator_id: 'admin',
+          image_url: null,
+          blockchain_tx_hash: null,
+          proposal_blockchain_id: null
+        };
+
+        const { data, error } = await supabase
+          .from('proposals')
+          .insert([proposalData])
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Supabase error:', error);
+          throw new Error('Failed to save proposal: ' + error.message);
+        }
+
+        console.log('Proposal saved via Supabase:', data);
+        
+        // Create voting item for local display
+        const newVotingItem = {
+          id: data.id,
+          title: projectTitle,
+          description: problemStatement + '\n\nProposed Solution: ' + proposedSolution,
+          category: 'Community',
+          categoryColor: 'bg-blue-100 text-blue-800',
+          startDate: votingStartDate,
+          endDate: votingEndDate,
+          totalVotes: 0,
+          yesVotes: 0,
+          noVotes: 0,
+          status: votingStartDate === new Date().toISOString().split('T')[0] ? 'active' : 'upcoming',
+          department: department,
+          location: 'Community Proposal',
+          estimatedBudget: 'Rs ' + estimatedBudget,
+          priority: 'medium'
+        };
+
+        // Save to localStorage for voting page
+        const existingVotes = JSON.parse(localStorage.getItem('voting_items') || '[]');
+        existingVotes.push(newVotingItem);
+        localStorage.setItem('voting_items', JSON.stringify(existingVotes));
+
+        setToast('Proposal submitted for voting successfully!');
+      }
+      
+      // Clear form
+      setProjectTitle(''); 
+      setProblemStatement(''); 
+      setProposedSolution(''); 
+      setAttachments([]);
+      setVotingStartDate('');
+      setVotingEndDate('');
+      
+    } catch (error: any) {
+      console.error('Error submitting proposal:', error);
+      setToast(error.message || 'An unexpected error occurred. Please try again.');
+    } finally {
+      setSubmittingForVote(false);
+      setShowSubmissionModal(false);
+    }
+  };
+
+  const handleCancelSubmission = () => {
+    setShowSubmissionModal(false);
+    setVotingStartDate('');
+    setVotingEndDate('');
   };
 
   const handleSendChat = async () => {
@@ -617,7 +760,7 @@ USER QUESTION: ${currentInput}`;
                     disabled={submitting}
                     className="flex items-center gap-2 px-4 py-2 bg-[#2D3F7B] text-white rounded-lg hover:bg-[#19295C] transition"
                   >
-                    {submitting ? 'Submitting...' : 'Submit for Review'}
+                    {submitting ? 'Submitting...' : 'Submit for poll creation'}
                   </button>
                 </div>
               </div>
@@ -970,6 +1113,108 @@ USER QUESTION: ${currentInput}`;
           )}
         </div>
       </div>
+
+      {/* Submission Modal */}
+      {showSubmissionModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-200">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold text-slate-800">Submit for Voting</h2>
+                <button
+                  onClick={handleCancelSubmission}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {/* Project Title */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Project Title</label>
+                <div className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800">
+                  {projectTitle}
+                </div>
+              </div>
+
+              {/* Project Description */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Project Description</label>
+                <div className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 min-h-[100px]">
+                  <div className="mb-2">
+                    <strong>Problem:</strong> {problemStatement}
+                  </div>
+                  <div>
+                    <strong>Solution:</strong> {proposedSolution}
+                  </div>
+                </div>
+              </div>
+
+              {/* Budget */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Estimated Budget</label>
+                <div className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800">
+                  Rs {estimatedBudget}
+                </div>
+              </div>
+
+              {/* Department */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Department</label>
+                <div className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800">
+                  {department}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Starting Date */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Voting Start Date *</label>
+                  <input
+                    type="date"
+                    value={votingStartDate}
+                    onChange={(e) => setVotingStartDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700"
+                  />
+                </div>
+
+                {/* Ending Date */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Voting End Date *</label>
+                  <input
+                    type="date"
+                    value={votingEndDate}
+                    onChange={(e) => setVotingEndDate(e.target.value)}
+                    min={votingStartDate || new Date().toISOString().split('T')[0]}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
+              <button
+                onClick={handleCancelSubmission}
+                className="px-4 py-2 text-slate-600 hover:text-slate-800 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitForVote}
+                disabled={submitingForVote || !votingStartDate || !votingEndDate}
+                className="px-6 py-2 bg-[#2D3F7B] hover:bg-[#19295C] disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors duration-200"
+              >
+                {submitingForVote ? 'Submitting...' : 'Submit for Vote'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

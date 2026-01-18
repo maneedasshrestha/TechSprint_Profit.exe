@@ -27,6 +27,9 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       case 'active-projects':
         router.push('/active-projects');
         break;
+      case 'voting':
+        router.push('/voting');
+        break;
       case 'reports':
         router.push('/reports');
         break;
@@ -74,6 +77,15 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       icon: (
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
           <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+        </svg>
+      )
+    },
+    { 
+      id: 'voting', 
+      label: 'Voting', 
+      icon: (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
         </svg>
       )
     },
