@@ -42,6 +42,7 @@ export default function Topbar({ activeTab, onLogout }: TopbarProps) {
       case 'citizen-issues': return 'Citizen Issues';
       case 'citizen-proposals': return 'Proposals';
       case 'active-projects': return 'Active Projects';
+      case 'voting': return 'Voting';
       case 'reports': return 'Reports';
       case 'skills': return 'Skills & Technologies';
       case 'settings': return 'Settings';
