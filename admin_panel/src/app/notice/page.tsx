@@ -387,7 +387,7 @@ export default function Notice() {
                         <img
                           src={notice.image_url}
                           alt={notice.title}
-                          className="w-full max-w-md h-48 object-cover rounded-lg border border-slate-200"
+                          className="w-full max-w-md max-h-96 object-contain rounded-lg border border-slate-200"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
                           }}
@@ -495,7 +495,7 @@ export default function Notice() {
                       <img
                         src={imagePreview}
                         alt="Preview"
-                        className="w-full h-32 object-cover rounded-lg border border-slate-200"
+                        className="w-full max-h-64 object-contain rounded-lg border border-slate-200 bg-slate-50"
                       />
                       <button
                         type="button"
